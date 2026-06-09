@@ -49,8 +49,8 @@ sat_results = []
 cellMarking_full = np.ones(n_cells, dtype=int)
 m_full, p_full = solve_pressure(cell_struct, face_struct, cellMarking_full, inner_product, dt_pressure, g_c, eps_solver, gmres_niter, solver_type)
 Sw_hist_ref, time_hist_ref = solve_saturation(cell_struct, face_struct, m_full, Sw0, Sw_inj, tEnd=0.25, dt=0.01)
-Sw_ref = Sw_hist_ref[:, -1] 
-# write_vtu("output_fault/sat_full.vtu", vertices, cell_struct, face_struct, Sw_ref, "saturation", "saturation_plot")
+Sw_ref = Sw_hist_ref[:, -1]
+write_vtu("output/sat_full.vtu", vertices, cell_struct, face_struct, Sw_ref, "saturation", "saturation_plot")
 
 flux_rel_err = np.linalg.norm(m_full - m_proj) / np.linalg.norm(m_proj)
 flux_abs_err = np.linalg.norm(m_full - m_proj)
@@ -67,7 +67,7 @@ for tol in tol_list:
     m_num, p_num = solve_pressure(cell_struct, face_struct, cellMarking, inner_product, dt_pressure, g_c, eps_solver, gmres_niter, solver_type)
     Sw_hist, time_hist = solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd = 0.25, dt=0.01)
     Sw_final = Sw_hist[:,-1]
-    # write_vtu(f"output_fault/sat_tol_{tol:.1e}.vtu", vertices, cell_struct, face_struct, Sw_final, "saturation", "saturation_plot")
+    write_vtu(f"output/sat_tol_{tol:.1e}.vtu", vertices, cell_struct, face_struct, Sw_final, "saturation", "saturation_plot")
 
     flux_rel_err = np.linalg.norm(m_num - m_full) / np.linalg.norm(m_proj)
     flux_abs_err = np.linalg.norm(m_num - m_full)

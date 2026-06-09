@@ -75,7 +75,7 @@ def solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd, dt):
         ksp = PETSc.KSP().create()
         ksp.setOperators(A_petsc)
         b = A_petsc.createVecLeft()
-        b.array[:] = -rhs
+        b.array[:] = rhs
         x = A_petsc.createVecRight()
 
         ksp.setType("preonly")
@@ -85,11 +85,16 @@ def solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd, dt):
         ksp.solve(b, x)
         Sw = x.array
 
+        A_petsc.destroy()
+        b.destroy()
+        x.destroy()
+        ksp.destroy()
+
         et = time.time()
         elapsed_time = et - st
         print("Linear solver time (Saturation):", elapsed_time, "seconds")
 
-        Sw = np.maximum(0, np.minimum(1, Sw))
+        Sw = np.clip(Sw,0,1)
 
         t += dt_step
 

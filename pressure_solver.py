@@ -303,11 +303,26 @@ def neumannBoundary(A, face_struct):
     f_vals = np.array([face_struct[i]["BC_flux"] for i in f_ids])
 
     # Modify matrix rows/cols for prescribed fluxes
-    A = A.tolil()
-    A[f_ids, :] = 0
-    A[:, f_ids] = 0
-    A[f_ids, f_ids] = 1.0
-    A = A.tocsr()
+    # A = A.tolil()
+    # A[f_ids, :] = 0
+    # A[:, f_ids] = 0
+    # A[f_ids, f_ids] = 1.0
+    # A = A.tocsr()
+
+    # # Ensure A is already in CSR format
+    # A = A.tocsr()
+
+    # A[f_ids, :] = 0
+    # A[:, f_ids] = 0
+    # A[f_ids, f_ids] = 1.0
+    # A.eliminate_zeros()
+
+    diag_mask = np.ones(A.shape[0])
+    diag_mask[f_ids] = 0.0
+    P = diags(diag_mask).tocsr()  # Projection matrix
+    I_boundary = diags(1.0 - diag_mask).tocsr()
+    A = P @ A @ P + I_boundary
+    A.eliminate_zeros()
 
     rhs_BC[f_ids] = f_vals
     return A, rhs_BC, f_ids
