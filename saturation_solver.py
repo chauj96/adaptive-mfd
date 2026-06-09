@@ -1,7 +1,11 @@
 import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import spsolve
-
+try:
+    from petsc4py import PETSc
+except ImportError:
+    PETSc = None
+import time
 
 def solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd, dt):
 
@@ -64,7 +68,27 @@ def solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd, dt):
 
         A = coo_matrix((vals, (rows, cols)), shape=(n_cells, n_cells)).tocsr()
 
-        Sw = spsolve(A, rhs)
+        # Sw = spsolve(A, rhs)
+        st = time.time()
+        A_petsc = PETSc.Mat().createAIJ(
+            size=A.shape, csr=(A.indptr, A.indices, A.data))
+        ksp = PETSc.KSP().create()
+        ksp.setOperators(A_petsc)
+        b = A_petsc.createVecLeft()
+        b.array[:] = -rhs
+        x = A_petsc.createVecRight()
+
+        ksp.setType("preonly")
+        ksp.getPC().setType("lu")
+        ksp.getPC().setFactorSolverType("mumps")
+        ksp.setConvergenceHistory()
+        ksp.solve(b, x)
+        Sw = x.array
+
+        et = time.time()
+        elapsed_time = et - st
+        print("Linear solver time (Saturation):", elapsed_time, "seconds")
+
         Sw = np.maximum(0, np.minimum(1, Sw))
 
         t += dt_step

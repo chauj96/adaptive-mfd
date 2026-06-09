@@ -41,7 +41,7 @@ n_tol = len(tol_list)
 inner_product = "quasi_tpfa"
 eps_solver = 1e-12
 gmres_niter = 200
-solver_type = "direct"
+solver_type = "direct_mumps"
 
 # Compute full MFD 
 flux_results = []

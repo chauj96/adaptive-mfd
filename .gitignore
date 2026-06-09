@@ -1,0 +1,73 @@
+# ====================================================================
+# VS Code
+# ====================================================================
+.vscode/
+# Except for extensions.json which helps teams suggest useful extensions
+!.vscode/extensions.json
+*.code-workspace
+
+# Local history (VS Code extension)
+.history/
+
+
+# ====================================================================
+# PyCharm / JetBrains
+# ====================================================================
+.idea/
+# If you want to share specific JetBrains run configurations, uncomment the line below:
+# !.idea/runConfigurations/
+
+# CMake/CLion compilation artifacts (if doing mixed C++/Python development)
+cmake-build-debug/
+cmake-build-release/
+
+
+# ====================================================================
+# Python / Environments
+# ====================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+# Poetry/Pipenv specific directories
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+
+# ====================================================================
+# System Files (Optional but recommended)
+# ====================================================================
+.DS_Store
+Thumbs.db
+
+*.vtk
+*.vtu
