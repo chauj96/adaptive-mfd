@@ -4,8 +4,7 @@ from scipy.io import loadmat
 import xml.etree.ElementTree as ET
 import pyvista as pv
 
-# Mesh loader for different test cases (currently supports twoFaults)
-# TO DO: add distorted unit cube case
+# Mesh loader for different test cases
  
 def load_mesh(mesh_name):
 
