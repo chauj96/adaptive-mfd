@@ -34,9 +34,9 @@ Sw_inj = 1.0
 
 # ===== Step 3: Classify cells and solve a pressure field =====
 # Solver setup
-# inner_produce = "simple", "quasi_tpfa", "general_parametric", "bdvlm"
+# inner_product = "simple", "quasi_tpfa", "general_parametric", "bdvlm"
 # solver_type = "direct", "iterative"
-tol_list = np.array([1, 1e-1, 1e-2, 1e-4, 1e-6, 1e-8])
+tol_list = np.array([1, 1e-1, 1e-2])
 n_tol = len(tol_list)
 inner_product = "quasi_tpfa"
 eps_solver = 1e-12
@@ -52,6 +52,7 @@ Sw_hist_ref, time_hist_ref = solve_saturation(cell_struct, face_struct, m_full, 
 Sw_ref = Sw_hist_ref[:, -1]
 write_vtu("output/sat_full.vtu", vertices, cell_struct, face_struct, Sw_ref, "saturation", "saturation_plot")
 
+# NEED TO CHANGE TO ENERGY NORM!
 flux_rel_err = np.linalg.norm(m_full - m_proj) / np.linalg.norm(m_proj)
 flux_abs_err = np.linalg.norm(m_full - m_proj)
 flux_results.append(["full", flux_rel_err, flux_abs_err])
