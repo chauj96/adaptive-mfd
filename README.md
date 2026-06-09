@@ -1,4 +1,4 @@
-## Running the Python version (`src/adaptiveMFD_python`)
+## Running adaptive MFD cell classification codes
 
 Install system dependencies (macOS)
 ```bash
