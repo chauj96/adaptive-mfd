@@ -40,4 +40,4 @@ Simulation parameters are specified through YAML input files. These files define
  - Flux error referecne
  - Saturation solver settings
 
-This design allows different benchmark cases to be configured without modifying the source code.
+This design allows different benchmark cases to be configured **without** modifying the source code.
