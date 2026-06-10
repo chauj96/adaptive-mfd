@@ -1,0 +1,30 @@
+mesh: twoFaults
+
+analytical_field:
+  a: -1.0
+  b: -1.0
+  c: -1.0
+  d: 1.0
+
+permeability: het_anisotropy
+boundary_condition: corner2corner
+
+tol_list:
+  - 1.0e+2
+  - 1.0
+  - 1.0e-1
+  - 1.0e-2
+  - 1.0e-4
+  - 1.0e-6
+  - 1.0e-8
+
+solver:
+  inner_product: quasi_tpfa
+  solver_type: iterative
+
+reference_flux: full_mfd
+
+saturation:
+  enabled: true
+  tEnd: 1.0
+  dt: 0.05

@@ -14,6 +14,7 @@ def initPhysicalParams(cell_struct, face_struct, Lx, Ly, Lz, perm_tensor="identi
 
     n_faces = len(face_struct)
     n_cells = len(cell_struct)
+    rng = np.random.default_rng(0)
 
     for c in range(n_cells):
 
@@ -26,28 +27,30 @@ def initPhysicalParams(cell_struct, face_struct, Lx, Ly, Lz, perm_tensor="identi
         elif perm_tensor == "layered_isotropy":
 
             if z < 0.13:
-                k_base = 1.0e-4
+                k_base = 4.0
             elif z < 0.26:
                 k_base = 1.0
             else:
-                k_base = 1.0e3
+                k_base = 0.1
 
             K = k_base * np.eye(3)
 
         elif perm_tensor == "het_anisotropy":
 
             if z < 0.13:
-                k_base = 1.0e-4
+                k_base = 4.0
             elif z < 0.26:
                 k_base = 1.0
             else:
-                k_base = 1.0e3
+                k_base = 0.1
 
-            kx = k_base
-            ky = 100.0 * kx
-            kz = 0.01 * kx
+            ksi = rng.standard_normal()
 
-            K = np.diag([kx, ky, kz])
+            kxx = k_base * np.exp(0.1 * ksi)
+            kyy = 0.5 * kxx
+            kzz = 0.2 * kxx
+
+            K = np.diag([kxx, kyy, kzz])
 
         else:
             raise ValueError(f"Unknown perm_tensor: {perm_tensor}")

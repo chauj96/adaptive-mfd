@@ -11,8 +11,7 @@ from operators import orth
 import time
 
 def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple", 
-                   dt_pressure=1.0, g_c=0.0, eps_solver=1e-11, gmres_niter=50, 
-                   solver_type="direct"):
+                   dt_pressure=1.0, g_c=0.0, solver_type="direct"):
     t_total = time.time()
 
     n_cells = len(cell_struct)

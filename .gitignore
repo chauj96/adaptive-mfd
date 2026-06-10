@@ -71,3 +71,4 @@ Thumbs.db
 
 *.vtk
 *.vtu
+.DS_Store
