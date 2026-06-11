@@ -36,6 +36,13 @@ docker run --rm adaptive-mfd python main.py input/twoFault_hetani.yaml
 docker run --rm adaptive-mfd python main.py input/spe11b.yaml
 ```
 
+Run with the hypredrive back-end (GMRES + two-level MGR on the indefinite
+MFD pressure system, GMRES + BoomerAMG on the saturation system):
+
+```bash
+docker run --rm adaptive-mfd python main.py input/fullyPoly_hypredrive.yaml
+```
+
 Save output files to the host:
 
 ```bash
