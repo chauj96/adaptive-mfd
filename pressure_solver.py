@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse import coo_matrix, bmat, diags
 
-from inner_products import compute_inner_product
+from inner_products import compute_inner_product_batch
 from linear_solver import solve_linear_system
 import time
 
@@ -18,55 +18,84 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     face_normals = np.array([f["normal"] for f in face_struct])
     face_areas = np.array([f["area"] for f in face_struct])
 
-    face_counts = np.array([len(c["faces"]) for c in cell_struct], dtype=int)
-    total_nnz = int(np.sum(face_counts * face_counts))
+    # Pre-extract cell data into contiguous arrays
+    cell_centers_arr = np.array([c["center"] for c in cell_struct])
+    cell_K_arr = np.array([c["K"] for c in cell_struct])
+    cell_volumes_arr = np.array([c["volume"] for c in cell_struct])
+    cell_face_lists = [np.asarray(c["faces"], dtype=int) for c in cell_struct]
+    cell_sign_lists = [np.asarray(c["faces_orientation"], dtype=float).reshape(-1)
+                       for c in cell_struct]
 
-    rows = np.zeros(total_nnz, dtype=int)
-    cols = np.zeros(total_nnz, dtype=int)
-    vals = np.zeros(total_nnz, dtype=float)
-    idx = 0
+    face_counts = np.array([len(fl) for fl in cell_face_lists], dtype=int)
+    unique_nf_vals = np.unique(face_counts)
 
-    # Cache for meshgrid indices
-    gi_cache = {}
-    gj_cache = {}
-    for nf in np.unique(face_counts):
+    rows_list = []
+    cols_list = []
+    vals_list = []
+
+    for nf in unique_nf_vals:
+        cell_ids = np.where(face_counts == nf)[0]
+        batch_size = len(cell_ids)
+
+        # Stack per-cell arrays into batched 3D tensors
+        face_ids_batch = np.array([cell_face_lists[c] for c in cell_ids])   # (batch, nf)
+        signs_batch = np.array([cell_sign_lists[c] for c in cell_ids])      # (batch, nf)
+
+        Cc_batch = cell_centers_arr[cell_ids]    # (batch, dim)
+        K_batch = cell_K_arr[cell_ids]           # (batch, dim, dim)
+        v_batch = cell_volumes_arr[cell_ids]     # (batch,)
+
+        # Gather face geometry via advanced indexing
+        Cf_batch = face_centers[face_ids_batch]  # (batch, nf, dim)
+        Nf_batch = face_normals[face_ids_batch]  # (batch, nf, dim)
+        Af_batch = face_areas[face_ids_batch]    # (batch, nf)
+
+        # Vectorised geometry
+        C_batch = Cf_batch - Cc_batch[:, None, :]                          # (batch, nf, dim)
+        df_norms = np.linalg.norm(C_batch, axis=2)                         # (batch, nf)
+        signf_batch = np.sign(
+            np.sum((C_batch / df_norms[:, :, None]) * Nf_batch, axis=2))    # (batch, nf)
+        N_batch = Af_batch[:, :, None] * signf_batch[:, :, None] * Nf_batch # (batch, nf, dim)
+
+        # Compute invT — split by cellMarking for TPFA / MFD
+        marking_batch = cellMarking[cell_ids]
+        tpfa_mask = marking_batch == 0
+        mfd_mask = ~tpfa_mask
+
+        invT_batch = np.empty((batch_size, nf, nf))
+
+        if np.any(tpfa_mask):
+            invT_batch[tpfa_mask] = compute_inner_product_batch(
+                "tpfa", C_batch[tpfa_mask], N_batch[tpfa_mask],
+                K_batch[tpfa_mask], v_batch[tpfa_mask],
+                Af_batch[tpfa_mask], dim)
+
+        if np.any(mfd_mask):
+            invT_batch[mfd_mask] = compute_inner_product_batch(
+                inner_product, C_batch[mfd_mask], N_batch[mfd_mask],
+                K_batch[mfd_mask], v_batch[mfd_mask],
+                Af_batch[mfd_mask], dim,
+                signf_vec=signf_batch[mfd_mask], Nf_mat=Nf_batch[mfd_mask])
+
+        # Batched COO assembly
+        sign_mat = signs_batch[:, :, None] * signs_batch[:, None, :]  # (batch, nf, nf)
+        product = sign_mat * invT_batch
+        # Column-major flatten per cell: transpose last two dims then row-major reshape
+        vals_flat = product.transpose(0, 2, 1).reshape(batch_size, -1)  # (batch, nf*nf)
+
         ii, jj = np.meshgrid(np.arange(nf), np.arange(nf), indexing="ij")
-        gi_cache[nf] = ii.ravel('F')
-        gj_cache[nf] = jj.ravel('F')
+        gi_local = ii.ravel('F')
+        gj_local = jj.ravel('F')
+        gi_all = face_ids_batch[:, gi_local]  # (batch, nf*nf)
+        gj_all = face_ids_batch[:, gj_local]  # (batch, nf*nf)
 
-    # Cell loop
-    for cc in range(n_cells):
-        face_ids = np.asarray(cell_struct[cc]["faces"], dtype=int)
-        cell_nf = face_ids.size
+        rows_list.append(gi_all.ravel())
+        cols_list.append(gj_all.ravel())
+        vals_list.append(vals_flat.ravel())
 
-        Cc = np.asarray(cell_struct[cc]["center"]).reshape(-1)
-        K = np.asarray(cell_struct[cc]["K"])
-        v = cell_struct[cc]["volume"]
-        signs = np.asarray(cell_struct[cc]["faces_orientation"]).reshape(-1)
-        
-        Cf_mat = face_centers[face_ids]
-        Nf_mat = face_normals[face_ids]
-        Af_vec = face_areas[face_ids]
-
-        C = Cf_mat - Cc
-        df_norms = np.linalg.norm(C, axis=1)
-        signf_vec = np.sign(np.sum((C / df_norms[:, None]) * Nf_mat, axis=1))
-        N = Af_vec[:, None] * signf_vec[:, None] * Nf_mat
-
-        ip_type = "tpfa" if cellMarking[cc] == 0 else inner_product
-        invT = compute_inner_product(ip_type, C, N, K, v, Af_vec, dim,
-                                     signf_vec=signf_vec, Nf_mat=Nf_mat)
-
-        sign_mat = np.outer(signs, signs)
-
-        gi = face_ids[gi_cache[cell_nf]]
-        gj = face_ids[gj_cache[cell_nf]]
-        n2 = cell_nf * cell_nf
-
-        rows[idx:idx+n2] = gi
-        cols[idx:idx+n2] = gj
-        vals[idx:idx+n2] = (sign_mat * invT).ravel('F')
-        idx += n2
+    rows = np.concatenate(rows_list)
+    cols = np.concatenate(cols_list)
+    vals = np.concatenate(vals_list)
 
     M = coo_matrix((vals, (rows, cols)), shape=(n_faces, n_faces)).tocsr()
     B = buildBmatrix(cell_struct, face_struct)
