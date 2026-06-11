@@ -1,12 +1,50 @@
 import numpy as np
 from scipy.sparse import coo_matrix, bmat, diags
-
 from inner_products import compute_inner_product_batch
 from linear_solver import solve_linear_system
 import time
 
 def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple", 
-                   dt_pressure=1.0, g_c=0.0, solver_type="direct"):
+                   dt_pressure=1.0, g_c=0.0, solver_type="direct", source_term=None):
+    """
+    Solve the mixed pressure system using adaptive TPFA/MFD operators.
+
+    Parameters
+    ----------
+    cell_struct : list
+        Cell geometry, physical properties, and local operator data.
+
+    face_struct : list
+        Face geometry, boundary-condition, and physical data.
+
+    cellMarking : ndarray
+        Cell classification array:
+        0 = TPFA cell,
+        1 = MFD cell.
+
+    inner_product : str
+        Inner-product type used for cells marked as MFD.
+
+    dt_pressure : float
+        Pressure time-step size used in the accumulation term.
+
+    g_c : float
+        Gravity coefficient.
+
+    solver_type : str
+        Linear solver backend, e.g. "direct", "petsc", or "iterative".
+
+    Returns
+    -------
+    m : ndarray
+        Numerical face fluxes.
+
+    p : ndarray
+        Numerical cell pressures.
+
+    nnz_M : int
+        Number of nonzeros in the global inner-product block M.
+    """
     t_total = time.time()
 
     n_cells = len(cell_struct)
@@ -98,6 +136,8 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     vals = np.concatenate(vals_list)
 
     M = coo_matrix((vals, (rows, cols)), shape=(n_faces, n_faces)).tocsr()
+    # Remove explicit zeros so that M.nnz reflects the actual sparsity pattern
+    M.eliminate_zeros()
     B = buildBmatrix(cell_struct, face_struct)
     T = buildTmatrix(cell_struct)
 
@@ -108,6 +148,10 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     matrix, rhs_Neumann, _ = neumannBoundary(matrix, face_struct)
 
     p_n = np.zeros(n_cells)
+
+    if source_term is None:
+        source_term = (1.0 / dt_pressure) * (T @ p_n)
+
     g_vec = np.array([0.0, 0.0, -g_c])
     face_rho = np.array([f["rho"] for f in face_struct])
     f_g = -face_rho * (face_normals @ g_vec) * face_areas
@@ -117,7 +161,7 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     )
     BC_face_flux_vals = np.array([face_struct[i]["BC_flux"] for i in BC_face_flux_ids])
 
-    RHS = np.concatenate([f_g + rhs_Dirichlet, (1.0 / dt_pressure) * (T @ p_n)])
+    RHS = np.concatenate([f_g + rhs_Dirichlet, source_term])
     matrix, RHS = enforcePrescribedDOFsStrong(BC_face_flux_ids, BC_face_flux_vals, matrix, RHS)
 
     # DOF labels for hypredrive/MGR: 1 = face flux (fine), 0 = cell pressure (coarse)
@@ -130,13 +174,14 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
                                dofmap=dofmap)
 
     print(f"[Timer] TOTAL solve_pressure: {time.time() - t_total:.4f}s")
-    print("=" * 60)
 
-    return sol3[:n_faces], sol3[n_faces:]
+    return sol3[:n_faces], sol3[n_faces:], M.nnz
 
 
 def buildBmatrix(cell_struct, face_struct):
-    # Build divergence operator B (fully vectorized assembly)
+    """
+    Build the discrete divergence operator B.
+    """
     n_cells = len(cell_struct)
     n_faces = len(face_struct)
 
@@ -161,7 +206,9 @@ def buildBmatrix(cell_struct, face_struct):
 
 
 def buildTmatrix(cell_struct):
-    # Build time-stepping matrix T (fully vectorized)
+    """
+    Build the accumulation matrix T = diag(phi * volume).
+    """
     n_cells = len(cell_struct)
     
     phi_vals = np.array([cell["phi"] for cell in cell_struct])
@@ -172,6 +219,9 @@ def buildTmatrix(cell_struct):
 
 
 def dirichletBoundary(cell_struct, face_struct):
+    """
+    Assemble the RHS contribution from prescribed pressure boundaries.
+    """
     # Apply Dirichlet boundary conditions
     n_faces = len(face_struct)
     rhs_Dirichlet = np.zeros(n_faces)
@@ -197,8 +247,10 @@ def dirichletBoundary(cell_struct, face_struct):
 
     return rhs_Dirichlet
 
-
 def neumannBoundary(A, face_struct):
+    """
+    Modify the system matrix to impose prescribed flux boundaries.
+    """
     # Apply Neumann boundary conditions
     n_faces = len(face_struct)
     rhs_BC = np.zeros(n_faces)
@@ -206,21 +258,6 @@ def neumannBoundary(A, face_struct):
     # BC face identification
     f_ids = np.array([i for i, x in enumerate(face_struct) if x.get("BC_flux") is not None], dtype=int)
     f_vals = np.array([face_struct[i]["BC_flux"] for i in f_ids])
-
-    # Modify matrix rows/cols for prescribed fluxes
-    # A = A.tolil()
-    # A[f_ids, :] = 0
-    # A[:, f_ids] = 0
-    # A[f_ids, f_ids] = 1.0
-    # A = A.tocsr()
-
-    # # Ensure A is already in CSR format
-    # A = A.tocsr()
-
-    # A[f_ids, :] = 0
-    # A[:, f_ids] = 0
-    # A[f_ids, f_ids] = 1.0
-    # A.eliminate_zeros()
 
     diag_mask = np.ones(A.shape[0])
     diag_mask[f_ids] = 0.0
@@ -234,6 +271,9 @@ def neumannBoundary(A, face_struct):
 
 
 def buildGravityRHS(face_struct, g):
+    """
+    Build the gravity contribution to the flux RHS.
+    """
     # Build gravity RHS (fully vectorized)
     n_faces = len(face_struct)
     
@@ -247,9 +287,9 @@ def buildGravityRHS(face_struct, g):
     return f_g
 
 def enforcePrescribedDOFsStrong(prescribedIdx, prescribedVal, A, b):
-    
-    # Enforce prescribed DOFs via strong elimination. Modifies matrix rows/cols to impose boundary conditions directly.
-
+    """
+    Enforce prescribed degrees of freedom by strong elimination.
+    """
     nUnknowns = A.shape[0]
 
     # Convert scalar to array if needed
@@ -276,8 +316,9 @@ def enforcePrescribedDOFsStrong(prescribedIdx, prescribedVal, A, b):
 
 
 def block_prec(r, F_mm, A_pm, F_S, num_m_dofs):
-    # Block preconditioner application for saddle point systems.
-    
+    """
+    Apply a block preconditioner for the mixed saddle-point system.
+    """
     # Split residual into momentum and pressure parts
     r1 = r[:num_m_dofs]
     r2 = r[num_m_dofs:]

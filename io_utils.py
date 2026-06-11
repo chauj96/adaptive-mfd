@@ -1,11 +1,30 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# I/O utilities for visualization and reporting:
-# - export mesh and data to VTU (ParaView)
-# - print solver error tables and plot the error
+# Visualization and reporting utilities:
+# - export cell data to VTU format for ParaView
+# - print pressure, saturation, and sparsity statistics
+# - generate error-versus-tolerance plots
 
 def write_vtu(filename, V3, cell_struct, face_struct, cellData, cellDataName, flag):
+    """
+    Export cell-centered data to a VTU file for ParaView visualization.
+
+    Parameters
+    ----------
+    filename : str
+        Output VTU file.
+
+    cellData : ndarray
+        Cell-centered data to export.
+
+    cellDataName : str
+        Name of the exported variable.
+
+    flag : str
+        "cell_plot"       -> integer TPFA/MFD classification.
+        "saturation_plot" -> floating-point saturation field.
+    """
 
     nCells = len(cell_struct)
 
@@ -108,7 +127,7 @@ def write_vtu(filename, V3, cell_struct, face_struct, cellData, cellDataName, fl
 
 def print_pressure_err(results):
 
-    print("\n=== Solver Results ===")
+    print("\n=== Pressure/Flux Solver Results ===")
     print(f"{'tol':>10} | {'rel error':>12} | {'abs error':>12}")
     print("-"*40)
 
@@ -124,24 +143,28 @@ def plot_pressure_err(results):
     numeric = [r for r in results if not isinstance(r[0], str)]
 
     tol = np.array([r[0] for r in numeric])
+
     rel_err = np.array([r[1] for r in numeric])
+    abs_err = np.array([r[2] for r in numeric])
 
     plt.figure()
+
     plt.loglog(tol, rel_err, '-o', label="Relative Error")
+    plt.loglog(tol, abs_err, '-s', label="Absolute Error")
+
     plt.loglog(tol, tol, '--', label="y = tol")
 
     plt.xlabel("Tolerance")
-    plt.ylabel("Relative Flux Error")
+    plt.ylabel("Flux Error")
+
     plt.grid(True)
-    plt.title("Flux Relative Error vs Tolerance")
+    plt.title("Flux Error vs Tolerance")
 
     plt.legend(loc="upper left", frameon=True, fontsize=12)
 
-    plt.show()
-
 def print_saturation_err(results):
 
-    print("\n=== Saturation Results ===")
+    print("\n=== Saturation Solver Results ===")
     print(f"{'tol':>10} | {'rel error':>12} | {'abs error':>12}")
     print("-"*40)
 
@@ -157,16 +180,32 @@ def plot_saturation_err(results):
 
     tol = np.array([r[0] for r in numeric])
     rel_err = np.array([r[1] for r in numeric])
+    abs_err = np.array([r[2] for r in numeric])
 
     plt.figure()
     plt.loglog(tol, rel_err, '-o', label="Relative Error")
+    plt.loglog(tol, abs_err, '-s', label="Absolute Error")
     plt.loglog(tol, tol, '--', label="y = tol")
 
     plt.xlabel("Tolerance")
-    plt.ylabel("Relative Saturation Error")
+    plt.ylabel("Saturation Error")
     plt.grid(True)
     plt.title("Saturation Error vs Tolerance")
 
     plt.legend(loc="upper left", frameon=True, fontsize=12)
 
-    plt.show()
+def print_sparsity_info(results):
+
+    print("\n=== Sparsity Statistics ===")
+    print(f"{'tol':>10} | {'TPFA cells':>10} | {'nnz(M)':>12} | {'sparsity red (%)':>18}")
+    print("-" * 62)
+
+    for tol, n_tpfa_cells, nnz_M, sparsity_reduction in results:
+        if isinstance(tol, str):
+            print(
+                f"{tol:>10} | {int(n_tpfa_cells):10d} | {nnz_M:12d} | {sparsity_reduction:18.2f}"
+            )
+        else:
+            print(
+                f"{tol:10.1e} | {int(n_tpfa_cells):10d} | {nnz_M:12d} | {sparsity_reduction:18.2f}"
+            )

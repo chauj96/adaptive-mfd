@@ -8,6 +8,7 @@ analytical_field:
 
 permeability: identity
 boundary_condition: linear
+adaptation_level: GA
 
 tol_list:
   - 1.0e+2

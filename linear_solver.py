@@ -20,6 +20,13 @@ except ImportError:
 import atexit
 import time
 
+# Linear solver interface:
+# - direct sparse solve via SciPy
+# - optional iterative refinement
+# - PETSc/MUMPS backend for large-scale problems
+# - hypredrive (hypre) backend: two-level MGR for the indefinite MFD
+#   systems, BoomerAMG for definite ones
+
 # Persistent hypredrive drivers, one per (configuration kind, object name),
 # e.g. ("mgr", "pressure") and ("amg", "saturation"). Reusing a single
 # HYPREDRV handle across solves avoids per-call create/parse/destroy
