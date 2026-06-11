@@ -16,3 +16,17 @@ dependencies = [
     "pyvista",
     "pyyaml"
 ]
+
+[tool.setuptools]
+py-modules = [
+    "classification",
+    "inner_products",
+    "io_utils",
+    "linear_solver",
+    "main",
+    "mesh_loader",
+    "operators",
+    "physics",
+    "pressure_solver",
+    "saturation_solver"
+]
