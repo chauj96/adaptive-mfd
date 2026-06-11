@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from scipy.io import loadmat
+import zipfile
 import xml.etree.ElementTree as ET
 import pyvista as pv
 
@@ -13,26 +13,42 @@ import pyvista as pv
 def load_mesh(mesh_name):
     """
     Load one of the benchmark meshes used in the adaptive MFD examples.
-
-    Supported meshes
-    ----------------
-    twoFaults
-    spe11b
-    fullyPoly
-
-    Returns
-    -------
-    cell_struct, face_struct, vertices, Lx, Ly, Lz
     """
 
     if mesh_name == "twoFaults":
         return load_vtu("meshes/twoFaults/fault_mesh.vtu")
+
     elif mesh_name == "spe11b":
         return load_vtu("meshes/spe11b/spe11b_mesh.vtu")
+
     elif mesh_name == "fullyPoly":
         return load_vtu("meshes/fullyPolyhedral/fullyPoly_mesh.vtu")
-    elif mesh_name.startswith("ex0_h"):
-        return load_vtu(f"meshes/ex0/{mesh_name}.vtu")
+
+    elif mesh_name.startswith("ex0_"):
+
+        ensure_ex0_meshes()
+
+        if mesh_name == "ex0_h8":
+            return load_vtu("meshes/ex0/ex0_h8.vtu")
+
+        elif mesh_name == "ex0_h16":
+            return load_vtu("meshes/ex0/ex0_h16.vtu")
+
+        elif mesh_name == "ex0_h32":
+            return load_vtu("meshes/ex0/ex0_h32.vtu")
+
+        elif mesh_name == "ex0_h64":
+            return load_vtu("meshes/ex0/ex0_h64.vtu")
+
+        elif mesh_name == "ex0_h128":
+            return load_vtu("meshes/ex0/ex0_h128.vtu")
+
+        elif mesh_name == "ex0_h256":
+            return load_vtu("meshes/ex0/ex0_h256.vtu")
+
+        elif mesh_name == "ex0_h512":
+            return load_vtu("meshes/ex0/ex0_h512.vtu")
+
     else:
         raise ValueError(f"Unknown mesh: {mesh_name}")
 
@@ -143,3 +159,20 @@ def load_vtu(filepath):
     Lz = bounds[5] - bounds[4]
 
     return cell_struct, face_struct, vertices, Lx, Ly, Lz
+
+def ensure_ex0_meshes():
+
+    if os.path.exists("meshes/ex0"):
+        return
+
+    zip_path = "meshes/ex0.zip"
+
+    if not os.path.exists(zip_path):
+        raise FileNotFoundError(
+            "Could not find meshes/ex0.zip"
+        )
+
+    print("Extracting ex0 meshes...")
+
+    with zipfile.ZipFile(zip_path, "r") as z:
+        z.extractall("meshes")
