@@ -17,6 +17,21 @@ conda install -c conda-forge \
 numpy scipy matplotlib pyvista pyyaml \
 petsc petsc4py
 ```
+
+### Optional: install hypredrive (hypre back-end)
+The `hypredrive` solver type requires the
+[hypredrive](https://github.com/hypre-space/hypredrive) Python interface,
+built from source against an MPI installation (reuse conda's MPICH so a
+single MPI runtime is loaded alongside petsc4py):
+
+```bash
+git clone https://github.com/hypre-space/hypredrive.git
+python -m pip install ./hypredrive/interfaces/python
+```
+
+HYPRE itself is fetched and built automatically by the package build; see
+`docker/Dockerfile` for a fully reproducible recipe (including the flags
+needed when conda's own HYPRE is present).
 ### Run a simulation
 #### Case 1: Manufactured-Solution Convergence Test
 Run the convergence benchmark used to verify pressure and flux convergence rates:
@@ -43,6 +58,16 @@ python main.py input/twoFault_hetani.yaml
 python main.py input/spe11b.yaml
 ```
 
+To solve with hypre via hypredrive (`solver_type: hypredrive`), run:
+```bash
+python main.py input/fullyPoly_hypredrive.yaml
+```
+The indefinite (saddle-point) MFD pressure systems are solved with FGMRES
+preconditioned by two-level MGR (face fluxes as F-points, BoomerAMG on the
+cell-pressure Schur complement); the saturation systems use GMRES with
+BoomerAMG. At the end of the run, hypredrive prints one statistics summary
+table per system class ("pressure", "saturation") with one entry per solve.
+
 Results are written automatically to:
 ```text
 output/<case_name>/
@@ -58,7 +83,7 @@ Simulation parameters are specified through YAML input files. These files define
  - Boundary conditions
  - Tolerance values for adaptive classification
  - Adaptation strategy (`GA` or `LA`)
- - Pressure solver options (`direct`, `iterative`)
+ - Pressure solver options (`direct`, `iterative`, `hypredrive`)
  - Flux error referecne
  - Saturation solver settings
 
