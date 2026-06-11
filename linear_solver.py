@@ -3,14 +3,19 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import spsolve
 
 try:
+    import hypredrive
+    # Force-load the native extension now, before petsc4py: petsc's conda
+    # libHYPRE shares the SONAME of hypredrive's (newer) bundled libHYPRE,
+    # and the dynamic loader keeps whichever loads first for the whole
+    # process. hypredrive needs its own.
+    from hypredrive import driver as _  # noqa: F401
+except ImportError:
+    hypredrive = None
+
+try:
     from petsc4py import PETSc
 except ImportError:
     PETSc = None
-
-try:
-    import hypredrive
-except ImportError:
-    hypredrive = None
 
 import atexit
 import time
