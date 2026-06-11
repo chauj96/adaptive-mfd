@@ -1,4 +1,5 @@
 import numpy as np
+from inner_products import compute_inner_product, orth
 
 # Construct local MFD operators (M, B) for each cell
 # Supports TPFA, simple, and general parametric inner products
@@ -41,34 +42,7 @@ def createMmatrix(cell_struct, face_struct, ip_type="tpfa"):
             a[k] = Af
 
         # Build M (=invT)
-        if ip_type == "tpfa":
-
-            td = np.sum(C * (N @ K), axis=1) / np.sum(C * C, axis=1)
-            invT = np.diag(1.0 / np.abs(td))
-
-        elif ip_type == "simple":
-
-            t = 6 * np.sum(np.diag(K)) / dim
-
-            Q = orth(N / a[:, None])
-            U = np.eye(cell_nf) - Q @ Q.T
-            di = np.diag(1.0 / a)
-
-            invT_reg = (v / t) * (di @ U @ di)
-            invT = (C @ np.linalg.solve(K, C.T)) / v + invT_reg
-
-        elif ip_type == "general_parametric":
-
-            W = N @ K @ N.T
-            Qn = orth(N)
-            P = np.eye(cell_nf) - Qn @ Qn.T
-            diW = np.diag(1.0 / np.diag(W))
-
-            invT_reg = (v / cell_nf) * (P @ diW @ P)
-            invT = (C @ np.linalg.solve(K, C.T)) / v + invT_reg
-
-        else:
-            raise ValueError("ip_type must be 'tpfa', 'simple', or 'general_parametric'")
+        invT = compute_inner_product(ip_type, C, N, K, v, a, dim)
 
         # Store
         cell_struct[c]["M"] = invT
@@ -82,8 +56,3 @@ def createBmatrix(cell_struct):
         cell_struct[c]["B"] = np.array(cell_struct[c]["faces_orientation"]).reshape(-1)
 
     return cell_struct
-
-
-def orth(A):
-    U, _, _ = np.linalg.svd(A, full_matrices=False)
-    return U

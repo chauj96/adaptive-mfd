@@ -1,13 +1,8 @@
 import numpy as np
 from scipy.sparse import coo_matrix, bmat, diags
-from scipy.sparse.linalg import spsolve
 
-try:
-    from petsc4py import PETSc
-except ImportError:
-    PETSc = None
-
-from operators import orth
+from inner_products import compute_inner_product
+from linear_solver import solve_linear_system
 import time
 
 def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple", 
@@ -58,44 +53,9 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
         signf_vec = np.sign(np.sum((C / df_norms[:, None]) * Nf_mat, axis=1))
         N = Af_vec[:, None] * signf_vec[:, None] * Nf_mat
 
-        if cellMarking[cc] == 0:
-            td = np.sum(C * (N @ K), axis=1) / np.sum(C * C, axis=1)
-            invT = np.diag(1.0 / np.abs(td))
-        else:
-            if inner_product == "simple":
-                t_loc = 6.0 * np.trace(K) / dim
-                Q = orth(N / Af_vec[:, None])
-                U = np.eye(cell_nf) - Q @ Q.T
-                di = np.diag(1.0 / Af_vec)
-                invT_reg = (v / t_loc) * (di @ U @ di)
-                invT = (C @ np.linalg.solve(K, C.T)) / v + invT_reg
-
-            elif inner_product == "quasi_tpfa":
-                W = N @ K @ N.T
-                Qn = orth(N)
-                P = np.eye(Qn.shape[0]) - Qn @ Qn.T
-                diW = np.diag(1.0 / np.diag(W))
-                invT_reg = (v / 2.0) * (P @ diW @ P)
-                invT = (C @ np.linalg.solve(K, C.T)) / v + invT_reg
-
-            elif inner_product == "general_parametric":
-                W = N @ K @ N.T
-                Qn = orth(N)
-                P = np.eye(cell_nf) - Qn @ Qn.T
-                diW = np.diag(1.0 / np.diag(W))
-                invT_reg = (v / cell_nf) * (P @ diW @ P)
-                invT = (C @ np.linalg.solve(K, C.T)) / v + invT_reg
-
-            elif inner_product == "bdvlm":
-                R = np.diag(Af_vec) @ C
-                Nbd = (signf_vec[:, None] * Nf_mat) @ K
-                M0 = R @ np.linalg.solve(R.T @ Nbd, R.T)
-                NbdTNbd = Nbd.T @ Nbd
-                PN = np.eye(cell_nf) - Nbd @ np.linalg.solve(NbdTNbd, Nbd.T)
-                invT = np.diag(1.0 / Af_vec) @ (M0 + (1.0 / cell_nf) * PN) @ np.diag(1.0 / Af_vec)
-
-            else:
-                raise ValueError(f"Unknown inner_product: {inner_product}")
+        ip_type = "tpfa" if cellMarking[cc] == 0 else inner_product
+        invT = compute_inner_product(ip_type, C, N, K, v, Af_vec, dim,
+                                     signf_vec=signf_vec, Nf_mat=Nf_mat)
 
         sign_mat = np.outer(signs, signs)
 
@@ -131,97 +91,8 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     RHS = np.concatenate([f_g + rhs_Dirichlet, (1.0 / dt_pressure) * (T @ p_n)])
     matrix, RHS = enforcePrescribedDOFsStrong(BC_face_flux_ids, BC_face_flux_vals, matrix, RHS)
 
-    # ======== NEED TO IMPROVE THEIR SPEED ===========
-    t0 = time.time()
-    if solver_type == "direct":
-        sol3 = spsolve(matrix, -RHS)
-        print(f"[Timer] Direct solve (initial): {time.time() - t0:.4f}s")
-        
-        t0 = time.time()
-        for _ in range(3):
-            r = matrix @ sol3 + RHS
-            sol3 -= spsolve(matrix, r)
-        print(f"[Timer] Iterative refinement (3 iters): {time.time() - t0:.4f}s")
-    
-    # ======== NEED TO IMPROVE ===============
-    else:
-        if PETSc is None:
-            raise ImportError(
-                "petsc4py is not installed. "
-                "Install petsc/petsc4py or use solver_type='direct'."
-            )
-        
-        # t_setup = time.time()
-        # A_petsc = PETSc.Mat().createAIJ(
-        #     size=matrix.shape, csr=(matrix.indptr, matrix.indices, matrix.data))
-        # b_petsc = PETSc.Vec().createWithArray(-RHS)
-        # x_petsc = A_petsc.createVecRight()
-        #
-        # ksp = PETSc.KSP().create()
-        # ksp.setOperators(A_petsc)
-        # ksp.setType('gmres')
-        # ksp.setGMRESRestart(30)
-        # ksp.setTolerances(rtol=1e-10, atol=1e-14, max_it=100)
-        #
-        # pc = ksp.getPC()
-        # pc.setType('fieldsplit')
-        # pc.setFieldSplitType(PETSc.PC.CompositeType.SCHUR)
-        #
-        # is_flux = PETSc.IS().createGeneral(range(n_faces))
-        # is_pressure = PETSc.IS().createGeneral(range(n_faces, n_faces + n_cells))
-        # pc.setFieldSplitIS(('flux', is_flux), ('pressure', is_pressure))
-        #
-        # pc.setFieldSplitSchurPreType(PETSc.PC.SchurPreType.SELF)
-        # ksp.setFromOptions()
-        # print(f"[Timer] PETSc setup: {time.time() - t_setup:.4f}s")
-        #
-        # t_solve = time.time()
-        # ksp.solve(b_petsc, x_petsc)
-        # sol3 = x_petsc.getArray().copy()
-        # print(f"[Timer] PETSc initial solve: {time.time() - t_solve:.4f}s")
-        # print(f"  - Iterations: {ksp.getIterationNumber()}, Residual: {ksp.getResidualNorm():.2e}")
-        #
-        # t_refine = time.time()
-        # for i in range(1):
-        #     r = matrix @ sol3 + RHS
-        #     b_corr = PETSc.Vec().createWithArray(-r)
-        #     x_corr = A_petsc.createVecRight()
-        #     ksp.solve(b_corr, x_corr)
-        #     sol3 += x_corr.getArray()
-        #     b_corr.destroy()
-        #     x_corr.destroy()
-        #     print(f"  - Refinement {i+1}: {ksp.getIterationNumber()} iters")
-        #
-        # print(f"[Timer] PETSc refinement (1 iters): {time.time() - t_refine:.4f}s")
-        # print(f"  - Final residual: {np.linalg.norm(matrix @ sol3 + RHS) / np.linalg.norm(RHS):.2e}")
-        #
-        # A_petsc.destroy()
-        # b_petsc.destroy()
-        # x_petsc.destroy()
-        # ksp.destroy()
-
-        # solving ls
-        st = time.time()
-
-        A_petsc = PETSc.Mat().createAIJ(
-            size=matrix.shape, csr=(matrix.indptr, matrix.indices, matrix.data))
-        ksp = PETSc.KSP().create()
-        ksp.setOperators(A_petsc)
-        b = A_petsc.createVecLeft()
-        b.array[:] = -RHS
-        x = A_petsc.createVecRight()
-
-
-        ksp.setType("preonly")
-        ksp.getPC().setType("lu")
-        ksp.getPC().setFactorSolverType("mumps")
-        ksp.setConvergenceHistory()
-        ksp.solve(b, x)
-        sol3 = x.array
-
-        et = time.time()
-        elapsed_time = et - st
-        print("Linear solver time (Pressure):", elapsed_time, "seconds")
+    sol3 = solve_linear_system(matrix, -RHS, solver_type=solver_type,
+                               label="Pressure", refinement_iters=3)
 
     print(f"[Timer] TOTAL solve_pressure: {time.time() - t_total:.4f}s")
     print("=" * 60)
