@@ -1,13 +1,50 @@
 import numpy as np
 from scipy.sparse import coo_matrix
-
 from linear_solver import solve_linear_system
 
+# Fully implicit saturation solver:
+# - constructs an upwind transport operator
+# - reuses precomputed connectivity information
+# - solves the transport system at each time step
+# - returns saturation history and time history
 
 def solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd, dt, solver_type="petsc"):
+    """
+    Solve the fully implicit saturation transport problem.
+
+    Parameters
+    ----------
+    cell_struct : list
+        Cell geometry and physical properties.
+
+    face_struct : list
+        Face connectivity information.
+
+    m_num : ndarray
+        Face fluxes obtained from the pressure solve.
+
+    Sw0 : ndarray
+        Initial water saturation.
+
+    Sw_inj : float
+        Injection saturation imposed at inflow boundaries.
+
+    tEnd : float
+        Final simulation time.
+
+    dt : float
+        Transport time-step size.
+
+    Returns
+    -------
+    Sw_hist : ndarray
+        Saturation history for all cells.
+
+    time_hist : ndarray
+        Time values corresponding to the saturation snapshots.
+    """
 
     n_cells = len(cell_struct)
-    n_faces = len(face_struct)
     Sw = Sw0.copy()
     t = 0.0
 
@@ -93,17 +130,14 @@ def solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd, dt, sol
     while t < tEnd:
 
         dt_step = min(dt, tEnd - t)
-
         all_vals[:n_cells] = acc / dt_step    # update diagonal
 
         A = coo_matrix((all_vals, (all_rows, all_cols)),
                        shape=(n_cells, n_cells)).tocsr()
 
         rhs = (acc / dt_step) * Sw + rhs_bnd_fix
-
         Sw = solve_linear_system(A, rhs, solver_type=solver_type,
                                  label="Saturation")
-
         Sw = np.clip(Sw, 0, 1)
 
         t += dt_step

@@ -8,6 +8,10 @@ except ImportError:
 
 import time
 
+# Linear solver interface:
+# - direct sparse solve via SciPy
+# - optional iterative refinement
+# - PETSc/MUMPS backend for large-scale problems
 
 def solve_linear_system(A, b, solver_type="direct", label="", refinement_iters=0):
     """

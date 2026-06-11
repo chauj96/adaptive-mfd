@@ -5,9 +5,34 @@ from io_utils import write_vtu
 # Compute residual-based indicator and classify cells as TPFA or MFD
 # Also exports classification results for visualization
 
-def classify_cells(cell_struct, face_struct, m_proj, p_proj,
-                   vertices, a, b, c, d, tol,
-                   out_dir="output"):
+def classify_cells(cell_struct, face_struct, m_proj, p_proj, vertices, a, b, c, d, tol, out_dir="output"):
+    """
+    Classify cells as TPFA or MFD using the residual-based indicator.
+
+    Parameters
+    ----------
+    cell_struct : list
+        Cell geometry and operator data.
+
+    face_struct : list
+        Face geometry data.
+
+    m_proj : ndarray
+        Projected analytical flux field.
+
+    p_proj : ndarray
+        Projected analytical pressure field.
+
+    tol : float
+        Residual threshold used for TPFA/MFD classification.
+
+    Returns
+    -------
+    cellMarking : ndarray
+        Cell classification:
+        0 = TPFA
+        1 = MFD
+    """
 
     n_cells = len(cell_struct)
     n_faces = len(face_struct)
@@ -71,6 +96,7 @@ def classify_cells(cell_struct, face_struct, m_proj, p_proj,
 
     tpfa_count = n_cells - np.sum(cellMarking)
 
+    print("\n" + "=" * 50)
     if isinstance(tol, str):
         print(f"tol = {tol} | TPFA cells = {tpfa_count} / {n_cells}")
     else:

@@ -1,24 +1,33 @@
 import numpy as np
 import yaml
 import sys
+import os
+from pathlib import Path
+import matplotlib.pyplot as plt
 from mesh_loader import load_mesh
 from physics import initPhysicalParams, projectAnalyticalField
 from operators import createMmatrix, createBmatrix
 from classification import classify_cells
 from pressure_solver import solve_pressure
 from saturation_solver import solve_saturation
-from io_utils import print_pressure_err, plot_pressure_err, print_saturation_err, plot_saturation_err, write_vtu
+from io_utils import print_pressure_err, plot_pressure_err, print_saturation_err, plot_saturation_err, print_sparsity_info, write_vtu
 
+# ===== Step 0 =====
 if len(sys.argv) != 2:
     raise ValueError("Usage: python main.py <input_file.yaml>")
 
 input_file = sys.argv[1]
+case_name = Path(input_file).stem
+output_dir = os.path.join("output", case_name)
+os.makedirs(output_dir, exist_ok=True)
 
 with open(input_file, "r") as f:
     case = yaml.safe_load(f)
 
-# Load mesh and set up its geometric information
+# ===== Step 1: Load mesh and set up its geometric information =====
 cell_struct, face_struct, vertices, Lx, Ly, Lz = load_mesh(case["mesh"])
+
+# ===== Step 2: Physical/discrete operator setup =====
 reference_flux = case["reference_flux"]
 
 # Set analytical linear pressure field ( f(x,y,z) = ax + by + cz + d )
@@ -27,7 +36,6 @@ b = case["analytical_field"]["b"] / Ly
 c = case["analytical_field"]["c"] / Lz
 d = case["analytical_field"]["d"]
 
-# ===== Step 2: Physical/discrete operator setup =====
 g_c = 0.0
 dt_pressure = 1.0
 
@@ -52,8 +60,12 @@ solver_type = case["solver"]["solver_type"]
 # Compute full MFD 
 flux_results = []
 sat_results = []
+sparsity_results = []
 cellMarking_full = np.ones(n_cells, dtype=int)
-m_full, p_full = solve_pressure(cell_struct, face_struct, cellMarking_full, inner_product, dt_pressure, g_c, solver_type)
+m_full, p_full, nnz_full = solve_pressure(cell_struct, face_struct, cellMarking_full, inner_product, dt_pressure, g_c, solver_type)
+
+write_vtu(os.path.join(output_dir, "mesh_full_MFD.vtu"), vertices, cell_struct, face_struct, cellMarking_full, "cellMarking", "cell_plot")
+sparsity_results.append(["full MFD", 0.0, nnz_full, 0.0])
 
 if solve_saturation_flag:
     Sw0 = np.zeros(n_cells)
@@ -62,6 +74,7 @@ if solve_saturation_flag:
     dt_transport = case["saturation"]["dt"]
     Sw_hist_ref, time_hist_ref = solve_saturation(cell_struct, face_struct, m_full, Sw0, Sw_inj, tEnd=tEnd, dt=dt_transport)
     Sw_ref = Sw_hist_ref[:, -1]
+    write_vtu(os.path.join(output_dir, "sat_full_MFD.vtu"), vertices, cell_struct, face_struct, Sw_ref, "saturation", "saturation_plot")
 
 # NEED TO CHANGE TO ENERGY NORM!
 if reference_flux == "projection":
@@ -83,13 +96,16 @@ else:
 # Compute Adaptive MFD
 for tol in tol_list:
 
-    cellMarking = classify_cells(cell_struct, face_struct, m_proj, p_proj, vertices, a, b, c, d, tol)
-    m_num, p_num = solve_pressure(cell_struct, face_struct, cellMarking, inner_product, dt_pressure, g_c, solver_type)
+    cellMarking = classify_cells(cell_struct, face_struct, m_proj, p_proj, vertices, a, b, c, d, tol, out_dir=output_dir)
+    m_num, p_num, nnz_adapt = solve_pressure(cell_struct, face_struct, cellMarking, inner_product, dt_pressure, g_c, solver_type)
+    n_tpfa_cells = n_cells - int(np.sum(cellMarking))
+    sparsity_reduction = 100.0 * (1 - nnz_adapt / nnz_full)
+    sparsity_results.append([tol, n_tpfa_cells, nnz_adapt, sparsity_reduction])
 
     if solve_saturation_flag:
         Sw_hist, time_hist = solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd=tEnd, dt=dt_transport)
         Sw_final = Sw_hist[:,-1]
-        write_vtu(f"output/sat_tol_{tol:.1e}.vtu", vertices, cell_struct, face_struct, Sw_final, "saturation", "saturation_plot")
+        write_vtu(os.path.join(output_dir, f"sat_tol_{tol:.1e}.vtu"), vertices, cell_struct, face_struct, Sw_final, "saturation", "saturation_plot")
 
         sat_rel_err = np.linalg.norm(Sw_final - Sw_ref) / np.linalg.norm(Sw_ref)
         sat_abs_err = np.linalg.norm(Sw_final - Sw_ref)
@@ -100,9 +116,12 @@ for tol in tol_list:
     flux_results.append([tol, flux_rel_err, flux_abs_err])
 
 # Check flux relative/absolute error
+print_sparsity_info(sparsity_results)
 print_pressure_err(flux_results)
 plot_pressure_err(flux_results)
 
 if solve_saturation_flag:
     print_saturation_err(sat_results)
     plot_saturation_err(sat_results)
+
+plt.show()

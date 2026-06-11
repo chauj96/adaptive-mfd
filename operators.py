@@ -1,10 +1,33 @@
 import numpy as np
 from inner_products import compute_inner_product, orth
 
-# Construct local MFD operators (M, B) for each cell
-# Supports TPFA, simple, and general parametric inner products
+# Local mimetic operator construction:
+# - builds cell-wise inner-product matrices M
+# - supports TPFA and MFD inner products
+# - constructs local divergence vectors B
 
 def createMmatrix(cell_struct, face_struct, ip_type="tpfa"):
+    """
+    Construct local inner-product matrices for all cells.
+
+    Parameters
+    ----------
+    cell_struct : list
+        Cell geometry and physical properties.
+
+    face_struct : list
+        Face geometry information.
+
+    ip_type : str
+        Inner-product type:
+        "tpfa", "simple", "general_parametric", etc.
+
+    Returns
+    -------
+    cell_struct : list
+        Updated cell structure containing local M matrices.
+    """
+
     n_cells = len(cell_struct)
     dim = len(face_struct[0]["center"])
 
@@ -51,6 +74,14 @@ def createMmatrix(cell_struct, face_struct, ip_type="tpfa"):
 
 
 def createBmatrix(cell_struct):
+    """
+    Construct local divergence vectors B for all cells.
+
+    Returns
+    -------
+    cell_struct : list
+        Updated cell structure containing local B vectors.
+    """
 
     for c in range(len(cell_struct)):
         cell_struct[c]["B"] = np.array(cell_struct[c]["faces_orientation"]).reshape(-1)

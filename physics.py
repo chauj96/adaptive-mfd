@@ -1,9 +1,46 @@
 import numpy as np
 
-# Initialize physical parameters and boundary conditions
-# Also provides analytical reference pressure and flux fields
+# Physical parameter initialization:
+# - assigns permeability, porosity, and density fields
+# - applies boundary conditions
+# - constructs analytical reference pressure and flux fields
 
 def initPhysicalParams(cell_struct, face_struct, Lx, Ly, Lz, perm_tensor="identity", bc_option="linear"):
+    """
+    Initialize physical properties and boundary conditions.
+
+    Parameters
+    ----------
+    cell_struct : list
+        Cell geometry information.
+
+    face_struct : list
+        Face geometry information.
+
+    Lx, Ly, Lz : float
+        Domain dimensions.
+
+    perm_tensor : str
+        Permeability configuration:
+        "identity",
+        "layered_isotropy",
+        "het_anisotropy".
+
+    bc_option : str
+        Boundary-condition configuration:
+        "linear" or "corner2corner".
+
+    Returns
+    -------
+    cell_struct : list
+        Updated cell data with permeability, porosity, and density.
+
+    face_struct : list
+        Updated face data with boundary conditions.
+
+    phys : dict
+        Physical metadata used by the analytical projection routines.
+    """
 
     # Physical constants 
     phi_vals = 0.3
@@ -86,7 +123,6 @@ def initPhysicalParams(cell_struct, face_struct, Lx, Ly, Lz, perm_tensor="identi
         neumann_faces = np.concatenate([south_idx, north_idx, bottom_idx, top_idx])
         BC_Neumann_map = {int(f): 0.0 for f in neumann_faces}
 
-    # TO DO: NEED TO DEBUG
     elif bc_option == "corner2corner":
 
         grad_pref = np.array([-1.0 / Lx, -1.0 / Ly, -1.0 / Lz])
@@ -136,6 +172,27 @@ def initPhysicalParams(cell_struct, face_struct, Lx, Ly, Lz, perm_tensor="identi
 
 
 def projectAnalyticalField(cell_struct, face_struct, phys, a, b, c, d):
+    """
+    Construct analytical reference pressure and flux fields.
+
+    Parameters
+    ----------
+    phys : dict
+        Physical parameter dictionary.
+
+    a, b, c, d : float
+        Coefficients defining the analytical pressure field
+
+            p(x,y,z) = ax + by + cz + d
+
+    Returns
+    -------
+    m_proj : ndarray
+        Projected face flux field.
+
+    p_proj : ndarray
+        Projected cell pressure field.
+    """
 
     nCells = len(cell_struct)
     nFaces = len(face_struct)

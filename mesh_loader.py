@@ -4,9 +4,26 @@ from scipy.io import loadmat
 import xml.etree.ElementTree as ET
 import pyvista as pv
 
-# Mesh loader for different test cases
+# Mesh loading utilities:
+# - loads benchmark meshes from VTU files
+# - reconstructs cell and face connectivity
+# - computes face orientations for each cell
+# - returns geometric data structures used by the solvers
  
 def load_mesh(mesh_name):
+    """
+    Load one of the benchmark meshes used in the adaptive MFD examples.
+
+    Supported meshes
+    ----------------
+    twoFaults
+    spe11b
+    fullyPoly
+
+    Returns
+    -------
+    cell_struct, face_struct, vertices, Lx, Ly, Lz
+    """
 
     if mesh_name == "twoFaults":
         return load_vtu("meshes/twoFaults/fault_mesh.vtu")
@@ -17,49 +34,29 @@ def load_mesh(mesh_name):
     else:
         raise ValueError(f"Unknown mesh: {mesh_name}")
 
-# Directly loading data from .mat file (for debugging purpose)
-def load_twofault():
-
-    filepath = os.path.join("meshes", "twoFaults", "fault_mesh.mat")
-
-    data = loadmat(filepath, simplify_cells=True)
-
-    cell_struct = data["cell_struct"]
-    face_struct = data["face_struct"]
-    vertices = data["V3"]
-
-    # Index conversion (from matlab to python)
-    for c in cell_struct:
-        c["faces"] = np.array(c["faces"]).astype(int) - 1
-
-    # Size of the domain
-    Lx = 1.0
-    Ly = 1.0
-    Lz = 0.4
-
-    return cell_struct, face_struct, vertices, Lx, Ly, Lz
-
-# Directly loading data from .mat file (for debugging purpose)
-def load_spe11b():
-    filepath = os.path.join("meshes", "spe11b", "spe11b_mesh.mat")
-
-    data = loadmat(filepath, simplify_cells=True)
-
-    cell_struct = data["cell_struct"]
-    face_struct = data["face_struct"]
-    vertices = data["V3"]
-
-    for c in cell_struct:
-        c["faces"] = np.array(c["faces"]).astype(int) - 1
-
-    Lx = 8400
-    Ly = 1200.02
-    Lz = 100.0
-
-    return cell_struct, face_struct, vertices, Lx, Ly, Lz
-
-
 def load_vtu(filepath):
+    """
+    Load a VTU mesh and reconstruct cell and face data structures.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the VTU mesh file.
+
+    Returns
+    -------
+    cell_struct : list
+        Cell geometry and connectivity information.
+
+    face_struct : list
+        Face geometry and connectivity information.
+
+    vertices : ndarray
+        Vertex coordinates.
+
+    Lx, Ly, Lz : float
+        Domain dimensions computed from the mesh bounds.
+    """
 
     mesh = pv.read(filepath)
     vertices = mesh.points

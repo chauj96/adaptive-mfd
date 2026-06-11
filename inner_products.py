@@ -1,5 +1,9 @@
 import numpy as np
 
+# Mimetic inner-product operators:
+# - constructs local inverse transmissibility matrices
+# - supports TPFA and multiple MFD variants
+# - provides single-cell and batched implementations
 
 def orth(A):
     """Orthonormal basis for the column space of A."""
