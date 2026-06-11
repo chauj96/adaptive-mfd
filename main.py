@@ -55,6 +55,7 @@ solve_saturation_flag = case["saturation"]["enabled"]
 # solver_type = "direct", "iterative"
 tol_list = np.array(case["tol_list"])
 inner_product = case["solver"]["inner_product"]
+adaptation_level = case["adaptation_level"]
 solver_type = case["solver"]["solver_type"]
 
 # Compute full MFD 
@@ -62,7 +63,7 @@ flux_results = []
 sat_results = []
 sparsity_results = []
 cellMarking_full = np.ones(n_cells, dtype=int)
-m_full, p_full, nnz_full = solve_pressure(cell_struct, face_struct, cellMarking_full, inner_product, dt_pressure, g_c, solver_type)
+m_full, p_full, nnz_full = solve_pressure(cell_struct, face_struct, cellMarking_full, inner_product, dt_pressure, g_c, solver_type, source_term=None)
 
 write_vtu(os.path.join(output_dir, "mesh_full_MFD.vtu"), vertices, cell_struct, face_struct, cellMarking_full, "cellMarking", "cell_plot")
 sparsity_results.append(["full MFD", 0.0, nnz_full, 0.0])
@@ -96,8 +97,8 @@ else:
 # Compute Adaptive MFD
 for tol in tol_list:
 
-    cellMarking = classify_cells(cell_struct, face_struct, m_proj, p_proj, vertices, a, b, c, d, tol, out_dir=output_dir)
-    m_num, p_num, nnz_adapt = solve_pressure(cell_struct, face_struct, cellMarking, inner_product, dt_pressure, g_c, solver_type)
+    cellMarking = classify_cells(cell_struct, face_struct, m_proj, p_proj, vertices, a, b, c, d, tol, adaptation_level=adaptation_level, out_dir=output_dir)
+    m_num, p_num, nnz_adapt = solve_pressure(cell_struct, face_struct, cellMarking, inner_product, dt_pressure, g_c, solver_type, source_term=None)
     n_tpfa_cells = n_cells - int(np.sum(cellMarking))
     sparsity_reduction = 100.0 * (1 - nnz_adapt / nnz_full)
     sparsity_results.append([tol, n_tpfa_cells, nnz_adapt, sparsity_reduction])

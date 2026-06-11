@@ -31,6 +31,8 @@ def load_mesh(mesh_name):
         return load_vtu("meshes/spe11b/spe11b_mesh.vtu")
     elif mesh_name == "fullyPoly":
         return load_vtu("meshes/fullyPolyhedral/fullyPoly_mesh.vtu")
+    elif mesh_name.startswith("ex0_h"):
+        return load_vtu(f"meshes/ex0/{mesh_name}.vtu")
     else:
         raise ValueError(f"Unknown mesh: {mesh_name}")
 

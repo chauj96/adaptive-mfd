@@ -8,6 +8,7 @@ analytical_field:
 
 permeability: layered_isotropy
 boundary_condition: corner2corner
+adaptation_level: GA
 
 tol_list:
   - 1.0e+2

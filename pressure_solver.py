@@ -5,7 +5,7 @@ from linear_solver import solve_linear_system
 import time
 
 def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple", 
-                   dt_pressure=1.0, g_c=0.0, solver_type="direct"):
+                   dt_pressure=1.0, g_c=0.0, solver_type="direct", source_term=None):
     """
     Solve the mixed pressure system using adaptive TPFA/MFD operators.
 
@@ -148,6 +148,10 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     matrix, rhs_Neumann, _ = neumannBoundary(matrix, face_struct)
 
     p_n = np.zeros(n_cells)
+
+    if source_term is None:
+        source_term = (1.0 / dt_pressure) * (T @ p_n)
+
     g_vec = np.array([0.0, 0.0, -g_c])
     face_rho = np.array([f["rho"] for f in face_struct])
     f_g = -face_rho * (face_normals @ g_vec) * face_areas
@@ -157,7 +161,7 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     )
     BC_face_flux_vals = np.array([face_struct[i]["BC_flux"] for i in BC_face_flux_ids])
 
-    RHS = np.concatenate([f_g + rhs_Dirichlet, (1.0 / dt_pressure) * (T @ p_n)])
+    RHS = np.concatenate([f_g + rhs_Dirichlet, source_term])
     matrix, RHS = enforcePrescribedDOFsStrong(BC_face_flux_ids, BC_face_flux_vals, matrix, RHS)
 
     sol3 = solve_linear_system(matrix, -RHS, solver_type=solver_type,
