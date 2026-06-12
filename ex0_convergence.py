@@ -80,7 +80,7 @@ def main():
     tau_list = np.array([1.0, 1e-1, 1e-2, 1e-3, 1e-4])
     adaptation_levels = ["GA", "LA"]
     inner_product = "simple"
-    solver_type = "iterative"
+    solver_type = "hypredrive"
 
     for adaptation_level in adaptation_levels:
 
