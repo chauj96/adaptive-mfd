@@ -156,16 +156,7 @@ def main():
         ref2 = ((h_list / h_list[0]) ** 2 * np.min(rel_p_errors[0, :]) * 0.15)
 
         plt.loglog(h_list, ref2, "--k")
-        plt.text(
-            h_list[2],
-            ref2[2],
-            r"$\mathcal{O}(h^2)$",
-            fontsize=12,
-            ha="center",
-            va="center",
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.2),
-        )
-
+        plt.text(h_list[2], ref2[2], r"$\mathcal{O}(h^2)$", fontsize=12, ha="center", va="center", bbox=dict(facecolor="white", edgecolor="none", pad=0.2))
         plt.xlabel("Cell size $h$", fontsize=14)
         plt.ylabel("Relative pressure error", fontsize=14)
         plt.xticks(fontsize=12)
@@ -184,16 +175,9 @@ def main():
         ref1 = ((h_list / h_list[0]) * np.min(rel_m_errors[0, :]) * 0.15)
 
         plt.loglog(h_list, ref1, "--k")
-        plt.text(
-            h_list[2],
-            ref1[2],
-            r"$\mathcal{O}(h)$",
-            fontsize=12,
-            ha="center",
-            va="center",
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.2),
-        )
-
+        x_text = np.sqrt(h_list[1] * h_list[2])
+        y_text = np.sqrt(ref1[1] * ref1[2])
+        plt.text(x_text, y_text, r"$\mathcal{O}(h)$", fontsize=12, ha="center", va="center", bbox=dict(facecolor="white", edgecolor="none", pad=0.2))
         plt.xlabel("Cell size $h$", fontsize=14)
         plt.ylabel("Relative flux error", fontsize=14)
         plt.xticks(fontsize=12)
