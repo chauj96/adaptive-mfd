@@ -1,0 +1,31 @@
+mesh: spe11b
+
+analytical_field:
+  a: -1.0
+  b: 0.0
+  c: 0.0
+  d: 1.0
+
+permeability: identity
+boundary_condition: linear
+adaptation_level: GA
+
+tol_list:
+  - 1.0e+2
+  - 1.0
+  - 1.0e-1
+  - 1.0e-2
+  - 1.0e-3
+  - 1.0e-4
+  - 1.0e-5
+  - 1.0e-6
+  - 1.0e-7
+
+solver:
+  inner_product: quasi_tpfa
+  solver_type: hypredrive
+
+reference_flux: projection
+
+saturation:
+  enabled: false
