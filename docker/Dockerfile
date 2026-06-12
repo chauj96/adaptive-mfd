@@ -31,6 +31,33 @@ ARG PY_VER
 RUN conda install -c conda-forge -y python=${PY_VER}
 RUN conda install -c conda-forge -y petsc4py pyvista
 
+# Install system compilation utilities
+RUN conda install -c conda-forge -y mpich cmake ninja compilers patchelf
+
+# --- HYPREDRIVE BUILD BLOCK ---
+# No code modifications, no file edits, no sed scripts.
+RUN git clone https://github.com/hypre-space/hypredrive.git /opt/hypredrive
+
+WORKDIR /opt/hypredrive
+RUN cmake -DCMAKE_C_FLAGS="-Wno-error" -DHYPREDRV_ENABLE_DATA=ON -B build && \
+    cmake --build build -j$(nproc) -t check && \
+    cmake --install build --prefix /opt/hypredrive/build
+
+# Install the Python package pointing to the custom prefix path
+RUN python -m pip install /opt/hypredrive/interfaces/python \
+      --config-settings=cmake.define.HYPREDRV_PYTHON_BUNDLE_CORE=OFF \
+      --config-settings=cmake.define.CMAKE_PREFIX_PATH=/opt/hypredrive/build \
+      --config-settings=cmake.args="-DCMAKE_C_FLAGS=-Wno-error"
+
+# Link conda's MPICH next to the bundled libs
+RUN TARGET_LIBS_DIR="$(python -c 'import hypredrive, os; print(os.path.dirname(hypredrive.__file__))')/.libs" && \
+    mkdir -p "$TARGET_LIBS_DIR" && \
+    ln -s /miniconda/lib/libmpi.so.12 "$TARGET_LIBS_DIR/libmpi.so.12"
+# -----------------------------------
+
+# Reset working directory back to /app
+WORKDIR /app
+
 # Clone the adaptive-mfd repository
 RUN git clone https://github.com/chauj96/adaptive-mfd.git
 

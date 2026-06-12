@@ -52,7 +52,7 @@ solve_saturation_flag = case["saturation"]["enabled"]
 # ===== Step 3: Classify cells and solve a pressure field =====
 # Solver setup
 # inner_product = "simple", "quasi_tpfa", "general_parametric", "bdvlm"
-# solver_type = "direct", "iterative"
+# solver_type = "direct", "iterative", "hypredrive"
 tol_list = np.array(case["tol_list"])
 inner_product = case["solver"]["inner_product"]
 adaptation_level = case["adaptation_level"]
@@ -73,7 +73,7 @@ if solve_saturation_flag:
     Sw_inj = 1.0
     tEnd = case["saturation"]["tEnd"]
     dt_transport = case["saturation"]["dt"]
-    Sw_hist_ref, time_hist_ref = solve_saturation(cell_struct, face_struct, m_full, Sw0, Sw_inj, tEnd=tEnd, dt=dt_transport)
+    Sw_hist_ref, time_hist_ref = solve_saturation(cell_struct, face_struct, m_full, Sw0, Sw_inj, tEnd=tEnd, dt=dt_transport, solver_type=solver_type)
     Sw_ref = Sw_hist_ref[:, -1]
     write_vtu(os.path.join(output_dir, "sat_full_MFD.vtu"), vertices, cell_struct, face_struct, Sw_ref, "saturation", "saturation_plot")
 
@@ -105,7 +105,7 @@ for tol in tol_list:
     sparsity_results.append([tol, n_tpfa_cells, nnz_adapt, memory_mb_adapt, sparsity_reduction,memory_reduction])
 
     if solve_saturation_flag:
-        Sw_hist, time_hist = solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd=tEnd, dt=dt_transport)
+        Sw_hist, time_hist = solve_saturation(cell_struct, face_struct, m_num, Sw0, Sw_inj, tEnd=tEnd, dt=dt_transport, solver_type=solver_type)
         Sw_final = Sw_hist[:,-1]
         write_vtu(os.path.join(output_dir, f"sat_tol_{tol:.1e}.vtu"), vertices, cell_struct, face_struct, Sw_final, "saturation", "saturation_plot")
 

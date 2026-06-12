@@ -164,8 +164,14 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     RHS = np.concatenate([f_g + rhs_Dirichlet, source_term])
     matrix, RHS = enforcePrescribedDOFsStrong(BC_face_flux_ids, BC_face_flux_vals, matrix, RHS)
 
+    # DOF labels for hypredrive/MGR: 1 = face flux (fine), 0 = cell pressure (coarse)
+    dofmap = np.empty(n_faces + n_cells, dtype=np.intc)
+    dofmap[:n_faces] = 1
+    dofmap[n_faces:] = 0
+
     sol3 = solve_linear_system(matrix, -RHS, solver_type=solver_type,
-                               label="Pressure", refinement_iters=3)
+                               label="Pressure", refinement_iters=3,
+                               dofmap=dofmap)
 
     print(f"[Timer] TOTAL solve_pressure: {time.time() - t_total:.4f}s")
 

@@ -23,7 +23,7 @@ cd adaptive-mfd/docker
 Build the container from scratch:
 
 ```bash
-docker build --no-cache --build-arg OS_TYPE=aarch64 -t adaptive_mfd:v1 .
+docker build --no-cache --platform linux/amd64 --build-arg OS_TYPE=x86_64 -t adaptive_mfd:v1 .
 ```
 
 ## Save the Container Image
@@ -50,6 +50,7 @@ Start an interactive container session:
 
 ```bash
 docker run -it --rm \
+    --platform linux/amd64 \
     --memory=16g \
     --memory-swap=16g \
     -v "$(pwd)":/app/workspace \
