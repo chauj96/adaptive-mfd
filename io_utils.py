@@ -197,15 +197,15 @@ def plot_saturation_err(results):
 def print_sparsity_info(results):
 
     print("\n=== Sparsity Statistics ===")
-    print(f"{'tol':>10} | {'TPFA cells':>10} | {'nnz(M)':>12} | {'sparsity red (%)':>18}")
+    print(f"{'tol':>10} | {'TPFA cells':>10} | {'nnz(M)':>12} | {'Memory Mb (M)':>12} | {'sparsity red (%)':>18} | {'memory red (%)':>18}")
     print("-" * 62)
 
-    for tol, n_tpfa_cells, nnz_M, sparsity_reduction in results:
+    for tol, n_tpfa_cells, nnz_M, memory_mb_M, sparsity_reduction, memory_reduction in results:
         if isinstance(tol, str):
             print(
-                f"{tol:>10} | {int(n_tpfa_cells):10d} | {nnz_M:12d} | {sparsity_reduction:18.2f}"
+                f"{tol:>10} | {int(n_tpfa_cells):10d} | {nnz_M:12d} | {memory_mb_M:18.2f} | {sparsity_reduction:18.2f} | {memory_reduction:18.2f}"
             )
         else:
             print(
-                f"{tol:10.1e} | {int(n_tpfa_cells):10d} | {nnz_M:12d} | {sparsity_reduction:18.2f}"
+                f"{tol:10.1e} | {int(n_tpfa_cells):10d} | {nnz_M:12d} | {memory_mb_M:18.2f} | {sparsity_reduction:18.2f} | {memory_reduction:18.2f}"
             )
