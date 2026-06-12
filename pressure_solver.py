@@ -178,7 +178,7 @@ def solve_pressure(cell_struct, face_struct, cellMarking, inner_product="simple"
     M.eliminate_zeros()
     memory_bytes = M.data.nbytes + M.indices.nbytes + M.indptr.nbytes
     memory_mb = memory_bytes / (1024 ** 2)
-    return sol3[:n_faces], sol3[n_faces:], M.nnz, memory_mb
+    return sol3[:n_faces], sol3[n_faces:], M, M.nnz, memory_mb
 
 
 def buildBmatrix(cell_struct, face_struct):

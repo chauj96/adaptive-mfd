@@ -73,6 +73,8 @@ def set_ex0_physics(cell_struct, face_struct):
 
     return cell_struct, face_struct
 
+def energy_norm(v, M):
+    return np.sqrt(v @ (M @ v))
 
 def main():
 
@@ -136,9 +138,10 @@ def main():
                 n_tpfa = n_cells - int(np.sum(cell_marking))
                 tpfa_fracs[i, j] = n_tpfa / n_cells
 
-                m_num, p_num, _, _ = solve_pressure(cell_struct, face_struct, cell_marking, inner_product=inner_product, dt_pressure=1.0, g_c=0.0, solver_type=solver_type, source_term=f_src)
+                m_num, p_num, M, _, _ = solve_pressure(cell_struct, face_struct, cell_marking, inner_product=inner_product, dt_pressure=1.0, g_c=0.0, solver_type=solver_type, source_term=f_src)
+                e = m_num - m_exact
                 rel_p_errors[i, j] = (np.linalg.norm(p_num - p_exact) / np.linalg.norm(p_exact))
-                rel_m_errors[i, j] = (np.linalg.norm(m_num - m_exact) / np.linalg.norm(m_exact))
+                rel_m_errors[i, j] = (energy_norm(e, M) / energy_norm(m_exact, M))
 
                 print(f"TPFA cells = {n_tpfa} / {n_cells}")
                 print(f"Relative pressure error = {rel_p_errors[i,j]:.6e}")

@@ -125,7 +125,7 @@ def write_vtu(filename, V3, cell_struct, face_struct, cellData, cellDataName, fl
 
     # print(f"Wrote {filename}")
 
-def print_pressure_err(results):
+def print_flux_err(results):
 
     print("\n=== Pressure/Flux Solver Results ===")
     print(f"{'tol':>10} | {'rel error':>12} | {'abs error':>12}")
@@ -138,7 +138,7 @@ def print_pressure_err(results):
             print(f"{tol:10.1e} | {rel_err:12.3e} | {abs_err:12.3e}")
 
 
-def plot_pressure_err(results, filename=None):
+def plot_flux_err(results, filename=None):
 
     numeric = [r for r in results if not isinstance(r[0], str)]
 
