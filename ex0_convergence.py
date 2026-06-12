@@ -80,7 +80,7 @@ def main():
     tau_list = np.array([1.0, 1e-1, 1e-2, 1e-3, 1e-4])
     adaptation_levels = ["GA", "LA"]
     inner_product = "simple"
-    solver_type = "hypredrive"
+    solver_type = "iterative"
 
     for adaptation_level in adaptation_levels:
 
@@ -136,7 +136,7 @@ def main():
                 n_tpfa = n_cells - int(np.sum(cell_marking))
                 tpfa_fracs[i, j] = n_tpfa / n_cells
 
-                m_num, p_num, _ = solve_pressure(cell_struct, face_struct, cell_marking, inner_product=inner_product, dt_pressure=1.0, g_c=0.0, solver_type=solver_type, source_term=f_src)
+                m_num, p_num, _, _ = solve_pressure(cell_struct, face_struct, cell_marking, inner_product=inner_product, dt_pressure=1.0, g_c=0.0, solver_type=solver_type, source_term=f_src)
                 rel_p_errors[i, j] = (np.linalg.norm(p_num - p_exact) / np.linalg.norm(p_exact))
                 rel_m_errors[i, j] = (np.linalg.norm(m_num - m_exact) / np.linalg.norm(m_exact))
 
@@ -151,17 +151,27 @@ def main():
         plt.figure()
 
         for j, tau in enumerate(tau_list):
-            plt.loglog(h_list, rel_p_errors[:, j], "-o", label=f"tau={tau:.0e}")
+            plt.loglog(h_list, rel_p_errors[:, j], "-o", label=rf"$\tau={tau:.0e}$")
 
         ref2 = ((h_list / h_list[0]) ** 2 * np.min(rel_p_errors[0, :]) * 0.15)
 
         plt.loglog(h_list, ref2, "--k")
-        plt.text(h_list[2], ref2[2] * 0.4, r"$\mathcal{O}(h^2)$",)
-        plt.xlabel("Cell size h")
-        plt.ylabel("Relative pressure error")
-        plt.title(f"Pressure Convergence ({adaptation_level})")
+        plt.text(
+            h_list[2],
+            ref2[2],
+            r"$\mathcal{O}(h^2)$",
+            fontsize=12,
+            ha="center",
+            va="center",
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.2),
+        )
+
+        plt.xlabel("Cell size $h$", fontsize=14)
+        plt.ylabel("Relative pressure error", fontsize=14)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
         plt.grid(True)
-        plt.legend()
+        plt.legend(loc="best", frameon=True, fontsize=12)
         plt.savefig(os.path.join(out_dir, "pressure_convergence.png"), dpi=600, bbox_inches="tight")
         plt.close()
 
@@ -169,17 +179,27 @@ def main():
         plt.figure()
 
         for j, tau in enumerate(tau_list):
-            plt.loglog(h_list, rel_m_errors[:, j], "-o", label=f"tau={tau:.0e}")
+            plt.loglog(h_list, rel_m_errors[:, j], "-o", label=rf"$\tau={tau:.0e}$")
 
         ref1 = ((h_list / h_list[0]) * np.min(rel_m_errors[0, :]) * 0.15)
 
         plt.loglog(h_list, ref1, "--k")
-        plt.text(h_list[2], ref1[2] * 0.4, r"$\mathcal{O}(h)$")
-        plt.xlabel("Cell size h")
-        plt.ylabel("Relative flux error")
-        plt.title(f"Flux Convergence ({adaptation_level})")
+        plt.text(
+            h_list[2],
+            ref1[2],
+            r"$\mathcal{O}(h)$",
+            fontsize=12,
+            ha="center",
+            va="center",
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.2),
+        )
+
+        plt.xlabel("Cell size $h$", fontsize=14)
+        plt.ylabel("Relative flux error", fontsize=14)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
         plt.grid(True)
-        plt.legend()
+        plt.legend(loc="best", frameon=True, fontsize=12)
         plt.savefig(os.path.join(out_dir, "flux_convergence.png"), dpi=600, bbox_inches="tight")
         plt.close()
 
@@ -188,14 +208,15 @@ def main():
 
         for k, mesh_name in enumerate(mesh_names):
             plt.semilogx(tau_list, 100 * tpfa_fracs[k, :], "-o", label=mesh_name)
-            
+
         plt.gca().invert_xaxis()
-        plt.xlabel("Tolerance")
-        plt.ylabel("TPFA fraction (%)")
-        plt.title(f"TPFA Fraction ({adaptation_level})")
+        plt.xlabel("Tolerance", fontsize=14)
+        plt.ylabel("TPFA fraction (%)", fontsize=14)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
         plt.grid(True)
-        plt.legend()
-        plt.savefig(os.path.join(out_dir,"tpfa_fraction.png"), dpi=600, bbox_inches="tight")
+        plt.legend(loc="best", frameon=True, fontsize=12)
+        plt.savefig(os.path.join(out_dir, "tpfa_fraction.png"), dpi=600, bbox_inches="tight")
         plt.close()
 
 if __name__ == "__main__":

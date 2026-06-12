@@ -120,10 +120,10 @@ for tol in tol_list:
 # Check flux relative/absolute error
 print_sparsity_info(sparsity_results)
 print_pressure_err(flux_results)
-plot_pressure_err(flux_results)
+plot_pressure_err(flux_results, os.path.join(output_dir, "pressure_error.png"))
 
 if solve_saturation_flag:
     print_saturation_err(sat_results)
-    plot_saturation_err(sat_results)
+    plot_saturation_err(sat_results, os.path.join(output_dir, "saturation_error.png"))
 
 plt.show()

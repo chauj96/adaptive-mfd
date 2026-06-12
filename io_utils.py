@@ -138,7 +138,7 @@ def print_pressure_err(results):
             print(f"{tol:10.1e} | {rel_err:12.3e} | {abs_err:12.3e}")
 
 
-def plot_pressure_err(results):
+def plot_pressure_err(results, filename=None):
 
     numeric = [r for r in results if not isinstance(r[0], str)]
 
@@ -152,15 +152,25 @@ def plot_pressure_err(results):
     plt.loglog(tol, rel_err, '-o', label="Relative Error")
     plt.loglog(tol, abs_err, '-s', label="Absolute Error")
 
-    plt.loglog(tol, tol, '--', label="y = tol")
+    # reference slope
+    plt.loglog(tol, tol, '--k')
 
-    plt.xlabel("Tolerance")
-    plt.ylabel("Flux Error")
+    idx = max(len(tol) - 3, 0)
+
+    plt.text(tol[idx], tol[idx], r"$\mathcal{O}(\tau)$", fontsize=12, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='none', pad=0.2))
+
+    plt.xlabel("Tolerance", fontsize=14)
+    plt.ylabel("Flux Error", fontsize=14)
+
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
 
     plt.grid(True)
-    plt.title("Flux Error vs Tolerance")
 
     plt.legend(loc="upper left", frameon=True, fontsize=12)
+
+    if filename is not None:
+        plt.savefig(filename, dpi=600, bbox_inches="tight")
 
 def print_saturation_err(results):
 
@@ -174,7 +184,7 @@ def print_saturation_err(results):
         else:
             print(f"{tol:10.1e} | {rel_err:12.3e} | {abs_err:12.3e}")
 
-def plot_saturation_err(results):
+def plot_saturation_err(results, filename=None):
 
     numeric = [r for r in results if not isinstance(r[0], str)]
 
@@ -183,22 +193,35 @@ def plot_saturation_err(results):
     abs_err = np.array([r[2] for r in numeric])
 
     plt.figure()
+
     plt.loglog(tol, rel_err, '-o', label="Relative Error")
     plt.loglog(tol, abs_err, '-s', label="Absolute Error")
-    plt.loglog(tol, tol, '--', label="y = tol")
 
-    plt.xlabel("Tolerance")
-    plt.ylabel("Saturation Error")
+    # reference slope
+    plt.loglog(tol, tol, '--k')
+
+    idx = max(len(tol) - 3, 0)
+
+    plt.text(tol[idx], tol[idx], r"$\mathcal{O}(\tau)$", fontsize=12, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='none', pad=0.2))
+
+    plt.xlabel("Tolerance", fontsize=14)
+    plt.ylabel("Saturation Error", fontsize=14)
+
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
     plt.grid(True)
-    plt.title("Saturation Error vs Tolerance")
 
     plt.legend(loc="upper left", frameon=True, fontsize=12)
+
+    if filename is not None:
+        plt.savefig(filename, dpi=600, bbox_inches="tight")
 
 def print_sparsity_info(results):
 
     print("\n=== Sparsity Statistics ===")
     print(f"{'tol':>10} | {'TPFA cells':>10} | {'nnz(M)':>12} | {'Memory Mb (M)':>12} | {'sparsity red (%)':>18} | {'memory red (%)':>18}")
-    print("-" * 62)
+    print("-" * 101)
 
     for tol, n_tpfa_cells, nnz_M, memory_mb_M, sparsity_reduction, memory_reduction in results:
         if isinstance(tol, str):
