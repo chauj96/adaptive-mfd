@@ -60,7 +60,7 @@ def _hypredrive_close_all():
     _hypredrive_drivers.clear()
 
 
-def hypredrive_mgr_options(rel_tol=1e-08, max_iter=200, krylov_dim=100, print_level=0,
+def hypredrive_mgr_options(rel_tol=1e-10, max_iter=250, krylov_dim=100, print_level=0,
                            statistics=2, name="pressure"):
     """
     hypredrive options for the indefinite (saddle-point) MFD system:
@@ -117,7 +117,7 @@ def hypredrive_mgr_options(rel_tol=1e-08, max_iter=200, krylov_dim=100, print_le
     }
 
 
-def hypredrive_amg_options(rel_tol=1e-10, max_iter=200, krylov_dim=60, print_level=0,
+def hypredrive_amg_options(rel_tol=1e-10, max_iter=250, krylov_dim=60, print_level=0,
                            statistics=2, name="saturation"):
     """
     hypredrive options for definite systems (e.g. the saturation transport
