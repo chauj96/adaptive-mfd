@@ -154,14 +154,15 @@ def main():
         plt.figure()
 
         for j, tau in enumerate(tau_list):
-            plt.loglog(h_list, rel_p_errors[:, j], "-o", label=rf"$\tau={tau:.0e}$")
+            exp = int(np.log10(tau))
+            plt.loglog(h_list, rel_p_errors[:, j], "-o", label=rf"$\tau=10^{{{exp}}}$")
 
         ref2 = ((h_list / h_list[0]) ** 2 * np.min(rel_p_errors[0, :]) * 0.15)
 
         plt.loglog(h_list, ref2, "--k")
         plt.text(h_list[2], ref2[2], r"$\mathcal{O}(h^2)$", fontsize=12, ha="center", va="center", bbox=dict(facecolor="white", edgecolor="none", pad=0.2))
-        plt.xlabel("Cell size $h$", fontsize=14)
-        plt.ylabel("Relative pressure error", fontsize=14)
+        plt.xlabel("Cell Size $h$", fontsize=14)
+        plt.ylabel("Relative Pressure Error", fontsize=14)
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
         plt.grid(True)
@@ -173,7 +174,8 @@ def main():
         plt.figure()
 
         for j, tau in enumerate(tau_list):
-            plt.loglog(h_list, rel_m_errors[:, j], "-o", label=rf"$\tau={tau:.0e}$")
+            exp = int(np.log10(tau))
+            plt.loglog(h_list, rel_m_errors[:, j], "-o", label=rf"$\tau=10^{{{exp}}}$")
 
         ref1 = ((h_list / h_list[0]) * np.min(rel_m_errors[0, :]) * 0.15)
 
@@ -181,8 +183,8 @@ def main():
         x_text = np.sqrt(h_list[1] * h_list[2])
         y_text = np.sqrt(ref1[1] * ref1[2])
         plt.text(x_text, y_text, r"$\mathcal{O}(h)$", fontsize=12, ha="center", va="center", bbox=dict(facecolor="white", edgecolor="none", pad=0.2))
-        plt.xlabel("Cell size $h$", fontsize=14)
-        plt.ylabel("Relative flux error", fontsize=14)
+        plt.xlabel("Cell Size $h$", fontsize=14)
+        plt.ylabel("Relative Flux Error", fontsize=14)
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
         plt.grid(True)
@@ -197,8 +199,8 @@ def main():
             plt.semilogx(tau_list, 100 * tpfa_fracs[k, :], "-o", label=mesh_name)
 
         plt.gca().invert_xaxis()
-        plt.xlabel("Tolerance", fontsize=14)
-        plt.ylabel("TPFA fraction (%)", fontsize=14)
+        plt.xlabel(r"Tolerance $\tau$", fontsize=14)
+        plt.ylabel("TPFA Fraction (%)", fontsize=14)
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
         plt.grid(True)

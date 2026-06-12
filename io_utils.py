@@ -159,7 +159,7 @@ def plot_flux_err(results, filename=None):
 
     plt.text(tol[idx], tol[idx], r"$\mathcal{O}(\tau)$", fontsize=12, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='none', pad=0.2))
 
-    plt.xlabel("Tolerance", fontsize=14)
+    plt.xlabel(r"Tolerance $\tau$", fontsize=14)
     plt.ylabel("Flux Error", fontsize=14)
 
     plt.xticks(fontsize=12)
@@ -204,7 +204,7 @@ def plot_saturation_err(results, filename=None):
 
     plt.text(tol[idx], tol[idx], r"$\mathcal{O}(\tau)$", fontsize=12, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='none', pad=0.2))
 
-    plt.xlabel("Tolerance", fontsize=14)
+    plt.xlabel(r"Tolerance $\tau$", fontsize=14)
     plt.ylabel("Saturation Error", fontsize=14)
 
     plt.xticks(fontsize=12)
