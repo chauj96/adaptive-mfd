@@ -1,4 +1,7 @@
 ## Running adaptive MFD cell classification codes
+This repository is intended for users who wish to install and run the software directly in their local environment. The instructions below describe how to set up the required dependencies, install the package and execute the available benchmark cases. 
+
+Users interested in reproducing the results reported in the paper "*Adaptive Consistency in Mimetic Finite Difference: A Residual-Based Criterion for K-Orthogonal Cell Classification*" should refer to `docker/how_to_build_the_container.md`.
 
 ### Clone the repository
 ```bash
