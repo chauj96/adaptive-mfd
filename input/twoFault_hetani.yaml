@@ -27,5 +27,5 @@ reference_flux: full_mfd
 
 saturation:
   enabled: true
-  tEnd: 1.0
-  dt: 0.05
+  tEnd: 40.0
+  dt: 2.0
